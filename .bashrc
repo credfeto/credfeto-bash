@@ -5,27 +5,31 @@ iatest=$(expr index "$-" i)
 [ -f /etc/os-release ] && source /etc/os-release
 export LINUX_DISTRIBUTION=$ID
 
-echo "HOME: $HOME"
+#echo "HOME: $HOME"
 
 # The $XDG_DATA_HOME environment variable is not set, make sure to add it to your shell's configuration before setting any of the other environment variables!
 export XDG_DATA_HOME=$HOME/.local/share
 #echo "XDG_DATA_HOME: $XDG_DATA_HOME"
-[ ! -d "$XDG_DATA_HOME" ] && mkdir $XDG_DATA_HOME > /dev/null 2>&1
+[ ! -d "$XDG_DATA_HOME" ] && mkdir "$XDG_DATA_HOME" > /dev/null 2>&1
 
 # The $XDG_CONFIG_HOME environment variable is not set, make sure to add it to your shell's configuration before setting any of the other environment variables!
 export XDG_CONFIG_HOME=$HOME/.config
 #echo "XDG_CONFIG_HOME: $XDG_CONFIG_HOME"
-[ ! -d "$XDG_CONFIG_HOME" ] && mkdir $XDG_CONFIG_HOME > /dev/null 2>&1
+[ ! -d "$XDG_CONFIG_HOME" ] && mkdir "$XDG_CONFIG_HOME" > /dev/null 2>&1
 
 # The $XDG_STATE_HOME environment variable is not set, make sure to add it to your shell's configuration before setting any of the other environment variables!
 export XDG_STATE_HOME=$HOME/.local/state
 #echo "XDG_STATE_HOME: $XDG_STATE_HOME"
-[ ! -d "$XDG_STATE_HOME" ] && mkdir $XDG_STATE_HOME > /dev/null 2>&1
+[ ! -d "$XDG_STATE_HOME" ] && mkdir "$XDG_STATE_HOME" > /dev/null 2>&1
 
 # The $XDG_CACHE_HOME environment variable is not set, make sure to add it to your shell's configuration before setting any of the other environment variables!
 export XDG_CACHE_HOME=$HOME/.cache
 #echo "XDG_CACHE_HOME: $XDG_CACHE_HOME"
-[ ! -d "$XDG_CACHE_HOME" ] && mkdir $XDG_CACHE_HOME > /dev/null 2>&1
+[ ! -d "$XDG_CACHE_HOME" ] && mkdir "$XDG_CACHE_HOME" > /dev/null 2>&1
+
+# The Projects dir
+export XDG_PROJECTS_DIR=$HOME/work
+[ ! -d "$XDG_PROJECTS_DIR" ] && mkdir "$XDG_CACHE_HOME" > /dev/null 2>&1
 
 
 [ -z "$TMP" ] && export TMP=$XDG_RUNTIME_DIR
