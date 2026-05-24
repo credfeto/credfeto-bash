@@ -192,6 +192,11 @@ export SAM_CLI_BETA_ESBUILD=1
 # docker
 alias docker="sudo docker"
 
+# GO
+if command -v go &> /dev/null; then
+  export PATH="$PATH:$(go env GOPATH)/bin"
+fi
+
 #######################################################
 # PACMAN ALIASES
 #######################################################
