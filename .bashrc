@@ -7,6 +7,8 @@ export LINUX_DISTRIBUTION=$ID
 
 #echo "HOME: $HOME"
 
+export KEYS_SERVER_URL=https://keys.markridgwell.com
+
 # The $XDG_DATA_HOME environment variable is not set, make sure to add it to your shell's configuration before setting any of the other environment variables!
 export XDG_DATA_HOME=$HOME/.local/share
 #echo "XDG_DATA_HOME: $XDG_DATA_HOME"
