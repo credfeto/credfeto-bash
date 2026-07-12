@@ -1,6 +1,17 @@
-#!/bin/bash
+# shellcheck shell=bash
+# This file is sourced by interactive bash shells (see setup-arch.sh / setup-ubuntu.sh,
+# which symlink it to ~/.bashrc) — it must never be executed directly, so it
+# intentionally has no shebang and is not marked executable.
+#
+# File-wide: this file conditionally sources many machine- and session-specific
+# paths (package manager completions, nvm, per-host secrets files, etc.).
+# Statically resolving them is not possible — that is expected, not a bug.
+# shellcheck disable=SC1091
 
-iatest=$(expr index "$-" i)
+case $- in
+    *i*) iatest=1 ;;
+    *) iatest=0 ;;
+esac
 
 [ -f /etc/os-release ] && source /etc/os-release
 export LINUX_DISTRIBUTION=$ID
@@ -75,7 +86,7 @@ export GOPATH="$XDG_DATA_HOME/go"
 export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc"
 
 # IPFS
-[ ! -d "$XDG_DATA_HOME/ipfs" ] && mkdir "$XDG_DATAHOME/ipfs" > /dev/null 2>&1
+[ ! -d "$XDG_DATA_HOME/ipfs" ] && mkdir "$XDG_DATA_HOME/ipfs" > /dev/null 2>&1
 export IPFS_PATH="$XDG_DATA_HOME/ipfs"
 
 # KDE
@@ -135,7 +146,9 @@ export ANSIBLE_HOME="$XDG_DATA_HOME"/ansible
 # WGET
 #######################################################
 
-alias wget=wget --hsts-file="$XDG_DATA_HOME/wget-hsts"
+wget() {
+    command wget --hsts-file="$XDG_DATA_HOME/wget-hsts" "$@"
+}
 
 #######################################################
 #######################################################
@@ -187,7 +200,7 @@ export NODE_OPTIONS="--max-old-space-size=16384"
 export SAM_CLI_BETA_ESBUILD=1
 
 # load in work specific secrets
-[ -f "$HOME/work/funfair/secrets.bashrc" ] && \. "$HOME/work/funfair/secrets.bashrc" 
+[ -f "$HOME/work/funfair/secrets.bashrc" ] && \. "$HOME/work/funfair/secrets.bashrc"
 
 [ -f "$HOME/.local/share/JetBrains/Toolbox/scripts" ] && PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
 
@@ -196,7 +209,8 @@ alias docker="sudo docker"
 
 # GO
 if command -v go &> /dev/null; then
-  export PATH="$PATH:$(go env GOPATH)/bin"
+  GOPATH_BIN="$(go env GOPATH)/bin"
+  export PATH="$PATH:$GOPATH_BIN"
 fi
 
 #######################################################
@@ -205,9 +219,20 @@ fi
 
 if [ "$LINUX_DISTRIBUTION" = "arch" ] || [ "$LINUX_DISTRIBUTION" = "cachyos" ] ; then
 
+# Other pacman-* aliases below intentionally reference this alias at their own
+# invocation time (once the shell is interactive), not at parse time. The
+# sudo pacman calls in update() below intentionally bypass the alias.
+# shellcheck disable=SC2262,SC2032
 alias pacman='sudo pacman'
 alias pacman-reinstall="pacman -Qqn | sudo pacman -Syyu --noconfirm -"
-alias pacman-rebuild-aur="yay -Sy --rebuildtree --rebuildall $(pacman -Qqme)"
+# A function (not an alias) so "pacman -Qqme" is re-evaluated every time this is run,
+# rather than being frozen to whatever AUR packages were installed when .bashrc was sourced.
+pacman-rebuild-aur() {
+    # Word-splitting is intentional here: each installed package becomes a
+    # separate argument to --rebuildall.
+    # shellcheck disable=SC2046
+    yay -Sy --rebuildtree --rebuildall $(pacman -Qqme)
+}
 alias pacman-remove-unused="pacman -Qdtq | sudo pacman -Rs -"
 
 fi
@@ -239,7 +264,7 @@ fi
 #######################################################
 
 # Disable the bell
-if [[ $iatest > 0 ]]; then bind "set bell-style visible"; fi
+if [[ $iatest -gt 0 ]]; then bind "set bell-style visible"; fi
 
 # Expand the history size
 export HISTFILESIZE=10000
@@ -260,10 +285,10 @@ stty -ixon
 
 # Ignore case on auto-completion
 # Note: bind used instead of sticking these in .inputrc
-if [[ $iatest > 0 ]]; then bind "set completion-ignore-case on"; fi
+if [[ $iatest -gt 0 ]]; then bind "set completion-ignore-case on"; fi
 
 # Show auto-completion list automatically, without double tab
-if [[ $iatest > 0 ]]; then bind "set show-all-if-ambiguous On"; fi
+if [[ $iatest -gt 0 ]]; then bind "set show-all-if-ambiguous On"; fi
 
 # Set the default editor
 export EDITOR=nano
@@ -277,7 +302,9 @@ alias nvim='edit'
 export CLICOLOR=1
 export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
 #export GREP_OPTIONS='--color=auto' #deprecated
-alias grep="/usr/bin/grep $GREP_OPTIONS"
+grep() {
+    /usr/bin/grep "$@"
+}
 unset GREP_OPTIONS
 
 # Color for manpages in less makes manpages a little easier to read
@@ -326,6 +353,9 @@ alias da='date "+%Y-%m-%d %A %T %Z"'
 # Alias's to modified commands
 alias cp='cp -i'
 alias mv='mv -i'
+# The sudo rm calls in update() below intentionally bypass this interactive
+# alias in favour of the real rm.
+# shellcheck disable=SC2032
 alias rm='rm -iv'
 alias mkdir='mkdir -p'
 alias ps='ps auxf'
@@ -386,13 +416,19 @@ alias topcpu="/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"
 alias f="find . | grep "
 
 # Count all files (recursively) in the current folder
-alias countfiles="for t in files links directories; do echo \`find . -type \${t:0:1} | wc -l\` \$t; done 2> /dev/null"
+countfiles() {
+    for t in files links directories; do
+        echo "$(find . -type "${t:0:1}" | wc -l) $t"
+    done 2> /dev/null
+}
 
 # To see if a command is aliased, a file, or a built-in command
 alias checkcommand="type -t"
 
 # Show current network connections to the server
-alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *\$//'"
+ipview() {
+    netstat -anpl | grep :80 | awk '{print $5}' | cut -d":" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *$//'
+}
 
 # Show open ports
 alias openports='netstat -nape --inet'
@@ -441,20 +477,20 @@ sedit ()
 
 # Extracts any archive(s) (if unp isn't installed)
 extract () {
-	for archive in $*; do
-		if [ -f $archive ] ; then
+	for archive in "$@"; do
+		if [ -f "$archive" ] ; then
 			case $archive in
-				*.tar.bz2)   tar xvjf $archive    ;;
-				*.tar.gz)    tar xvzf $archive    ;;
-				*.bz2)       bunzip2 $archive     ;;
-				*.rar)       rar x $archive       ;;
-				*.gz)        gunzip $archive      ;;
-				*.tar)       tar xvf $archive     ;;
-				*.tbz2)      tar xvjf $archive    ;;
-				*.tgz)       tar xvzf $archive    ;;
-				*.zip)       unzip $archive       ;;
-				*.Z)         uncompress $archive  ;;
-				*.7z)        7z x $archive        ;;
+				*.tar.bz2)   tar xvjf "$archive"    ;;
+				*.tar.gz)    tar xvzf "$archive"    ;;
+				*.bz2)       bunzip2 "$archive"     ;;
+				*.rar)       rar x "$archive"       ;;
+				*.gz)        gunzip "$archive"      ;;
+				*.tar)       tar xvf "$archive"     ;;
+				*.tbz2)      tar xvjf "$archive"    ;;
+				*.tgz)       tar xvzf "$archive"    ;;
+				*.zip)       unzip "$archive"       ;;
+				*.Z)         uncompress "$archive"  ;;
+				*.7z)        7z x "$archive"        ;;
 				*)           echo "don't know how to extract '$archive'..." ;;
 			esac
 		else
@@ -494,16 +530,16 @@ cpp()
 				printf "]\r"
 			}
 		}
-	END { print "" }' total_size=$(stat -c '%s' "${1}") count=0
+	END { print "" }' total_size="$(stat -c '%s' "${1}")" count=0
 }
 
 # Copy and go to the directory
 cpg ()
 {
 	if [ -d "$2" ];then
-		cp $1 $2 && cd $2
+		cp "$1" "$2" && cd "$2"
 	else
-		cp $1 $2
+		cp "$1" "$2"
 	fi
 }
 
@@ -511,17 +547,17 @@ cpg ()
 mvg ()
 {
 	if [ -d "$2" ];then
-		mv $1 $2 && cd $2
+		mv "$1" "$2" && cd "$2"
 	else
-		mv $1 $2
+		mv "$1" "$2"
 	fi
 }
 
 # Create and go to the directory
 mkdirg ()
 {
-	mkdir -p $1
-	cd $1
+	mkdir -p "$1"
+	cd "$1"
 }
 
 # Goes up a specified number of directories  (i.e. up 4)
@@ -537,7 +573,7 @@ up ()
 	if [ -z "$d" ]; then
 		d=..
 	fi
-	cd $d
+	cd "$d"
 }
 
 #Automatically do an ls after each cd
@@ -591,9 +627,13 @@ function update ()
     # Update system packages ysung the native tool
     if [ -f /usr/bin/yay ]; then
 		yay -Syu --noconfirm
+		# Deliberately the real rm, not the interactive rm alias defined above.
+		# shellcheck disable=SC2033
 		sudo rm -fr /var/cache/pacman/pkg/download-*
 		yay -Sc --noconfirm
 	elif [ -f /usr/bin/pacman ]; then
+		# Deliberately the real pacman, not the pacman function defined above.
+		# shellcheck disable=SC2033
 		sudo pacman -Syu --noconfirm
 	elif [ -f /usr/bin/apt ]; then
 		sudo apt update && sudo apt dist-upgrade -y && sudo apt auto-remove -y
@@ -609,16 +649,16 @@ function update ()
 # For some reason, rot13 pops up everywhere
 rot13 () {
 	if [ $# -eq 0 ]; then
-		tr '[a-m][n-z][A-M][N-Z]' '[n-z][a-m][N-Z][A-M]'
+		tr 'a-mn-zA-MN-Z' 'n-za-mN-ZA-M'
 	else
-		echo $* | tr '[a-m][n-z][A-M][N-Z]' '[n-z][a-m][N-Z][A-M]'
+		echo "$*" | tr 'a-mn-zA-MN-Z' 'n-za-mN-ZA-M'
 	fi
 }
 
 # Trim leading and trailing spaces (for scripts)
 trim()
 {
-	local var=$@
+	local var="$*"
 	var="${var#"${var%%[![:space:]]*}"}"  # remove leading whitespace characters
 	var="${var%"${var##*[![:space:]]}"}"  # remove trailing whitespace characters
 	echo -n "$var"
@@ -628,7 +668,9 @@ trim()
 # Set the ultimate amazing command prompt
 #######################################################
 
-alias cpu="grep 'cpu ' /proc/stat | awk '{usage=(\$2+\$4)*100/(\$2+\$4+\$5)} END {print usage}' | awk '{printf(\"%.1f\n\", \$1)}'"
+cpu() {
+    grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}' | awk '{printf("%.1f\n", $1)}'
+}
 
 export PATH=$PATH:"$HOME/.local/bin:$HOME/.cargo/bin"
 
