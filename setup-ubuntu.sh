@@ -14,9 +14,9 @@ checkEnv(){
     fi
 
     ## Check for requirements.
-    REQUIREMENTS='curl apt groups sudo'
-    if ! which ${REQUIREMENTS}>/dev/null;then
-        echo -e "${RED}To run me, you need: ${REQUIREMENTS}${RC}"
+    REQUIREMENTS=(curl apt groups sudo)
+    if ! which "${REQUIREMENTS[@]}">/dev/null;then
+        echo -e "${RED}To run me, you need: ${REQUIREMENTS[*]}${RC}"
         exit 1
     fi
 
@@ -29,10 +29,10 @@ checkEnv(){
 
 installDepend(){
     ## Check for dependencies.
-    DEPENDENCIES='autojump bash bash-completion'
+    DEPENDENCIES=(autojump bash bash-completion)
     echo -e "${YELLOW}Installing dependencies...${RC}"
     sudo dpkg --configure -a
-    sudo apt-get install -fyq ${DEPENDENCIES}
+    sudo apt-get install -fyq "${DEPENDENCIES[@]}"
     sudo dpkg --configure -a
 }
 
@@ -48,7 +48,7 @@ linkConfig(){
     OLD_BASHRC="${HOME}/.bashrc"
     if [[ -e ${OLD_BASHRC} ]];then
         echo -e "${YELLOW}Moving old bash config file to ${HOME}/.bashrc.bak${RC}"
-        if ! mv ${OLD_BASHRC} ${HOME}/.bashrc.bak;then
+        if ! mv "${OLD_BASHRC}" "${HOME}/.bashrc.bak";then
             echo -e "${RED}Can't move the old bash config file!${RC}"
             exit 1
         fi
@@ -56,8 +56,8 @@ linkConfig(){
 
     echo -e "${YELLOW}Linking new bash config file...${RC}"
     ## Make symbolic link.
-    ln -svf ${GITPATH}/.bashrc ${HOME}/.bashrc
-    ln -svf ${GITPATH}/starship.toml ${HOME}/.config/starship.toml
+    ln -svf "${GITPATH}/.bashrc" "${HOME}/.bashrc"
+    ln -svf "${GITPATH}/starship.toml" "${HOME}/.config/starship.toml"
 }
 
 checkEnv
